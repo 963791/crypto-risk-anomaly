@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   db:
     image: postgres:15
@@ -10,17 +9,35 @@ services:
       - db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pguser"]
+      interval: 5s
+      retries: 5
+      timeout: 5s
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+      timeout: 5s
 
   web:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: >
+      bash -c "
+      until pg_isready -h db -U pguser; do
+        echo 'Waiting for Postgres...';
+        sleep 2;
+      done;
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
     environment:
       DATABASE_URL: postgres://pguser:pgpassword@db:5432/cryptoguard
       DJANGO_SECRET_KEY: "dev-secret"
@@ -30,24 +47,36 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   worker:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    command: celery -A config.celery worker --loglevel=info
+    command: >
+      bash -c "
+      until pg_isready -h db -U pguser; do
+        echo 'Waiting for Postgres...';
+        sleep 2;
+      done;
+      celery -A config.celery worker --loglevel=info
+      "
     environment:
       DATABASE_URL: postgres://pguser:pgpassword@db:5432/cryptoguard
       DJANGO_SECRET_KEY: "dev-secret"
       DEBUG: "True"
       CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
     volumes:
       - ..:/code
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   db_data:
