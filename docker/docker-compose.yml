@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: cryptoguard
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpassword
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DATABASE_URL: postgres://pguser:pgpassword@db:5432/cryptoguard
+      DJANGO_SECRET_KEY: "dev-secret"
+      DEBUG: "True"
+    volumes:
+      - ..:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config.celery worker --loglevel=info
+    environment:
+      DATABASE_URL: postgres://pguser:pgpassword@db:5432/cryptoguard
+      DJANGO_SECRET_KEY: "dev-secret"
+      DEBUG: "True"
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ..:/code
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  db_data:
