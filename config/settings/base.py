@@ -46,9 +46,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database (use DATABASE_URL env var or sqlite fallback)
 import dj_database_url
+
 DATABASES = {
-    "default": dj_database_url.parse(os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"))
+    "default": dj_database_url.parse(
+        os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
+        conn_max_age=600,  # keeps DB connections alive
+        ssl_require=False   # set True if using SSL
+    )
 }
+
 
 AUTH_USER_MODEL = "accounts.User"
 
