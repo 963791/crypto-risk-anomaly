@@ -11,6 +11,8 @@ urlpatterns = [
     path("api/ml/", include("apps.ml_engine.urls")),
     path("", include("apps.dashboard.urls")),
     path('dashboard/', include('apps.dashboard.urls')),
+    path("api/dashboard/", include("apps.dashboard.urls")),
+
 ]
 
 
