@@ -10,15 +10,15 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
-    list_display = ("id", "created_at")  # remove 'status' if it doesn't exist
+    list_display = ("id", "created_at")  # only fields that exist
     search_fields = ("id",)
-    list_filter = ("created_at",)         # remove 'status' if it doesn't exist
+    list_filter = ("created_at",)
     ordering = ("-created_at",)
 
 @admin.register(WalletProfile)
 class WalletProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "balance")    # remove 'created_at' if not in model
-    list_filter = ()                      # only use fields that exist
-    ordering = ("user",)
+    list_display = ("wallet_address", "balance_amount")  # match actual model fields
+    list_filter = ()
+    ordering = ("wallet_address",)
 
 
