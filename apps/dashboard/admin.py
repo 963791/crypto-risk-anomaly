@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import DashboardExample
 
-@admin.site.register(DashboardExample)
+# Simple registration of the model
+admin.site.register(DashboardExample)
 
    
 
