@@ -1,0 +1,124 @@
+<!-- templates/dashboard/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Crypto Risk Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* minimal, readable styling */
+        body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 20px; background:#f7fafc; color:#111827; }
+        .container { max-width:1200px; margin: 0 auto; }
+        .header { margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background:white; border-radius:8px; padding:16px; box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
+        table { width:100%; border-collapse: collapse; }
+        th, td { text-align:left; padding:8px; border-bottom:1px solid #eef2f7; font-size:14px; }
+        .badge { padding:6px 10px; border-radius:999px; color:white; font-size:12px; }
+        .badge-high{ background:#e53e3e } .badge-medium{ background:#dd6b20 } .badge-low{ background:#38a169 }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Crypto Risk Anomaly Dashboard</h1>
+        <p>Welcome, {{ user.username }}</p>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>Total Transactions</h3>
+            <div style="font-size:28px;font-weight:700;">{{ total_transactions }}</div>
+        </div>
+        <div class="card">
+            <h3>High Risk</h3>
+            <div style="font-size:28px;font-weight:700;color:#e53e3e;">{{ high_risk_count }}</div>
+        </div>
+        <div class="card">
+            <h3>Medium Risk</h3>
+            <div style="font-size:28px;font-weight:700;color:#dd6b20;">{{ medium_risk_count }}</div>
+        </div>
+        <div class="card">
+            <h3>Low Risk</h3>
+            <div style="font-size:28px;font-weight:700;color:#38a169;">{{ low_risk_count }}</div>
+        </div>
+        <div class="card">
+            <h3>Anomalies</h3>
+            <div style="font-size:28px;font-weight:700;color:#805ad5;">{{ anomalies_count }}</div>
+        </div>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;">
+        <div class="card">
+            <h3>Risk Distribution</h3>
+            <canvas id="riskPieChart"></canvas>
+        </div>
+        <div class="card">
+            <h3>Daily Transactions (last 7 days)</h3>
+            <canvas id="dailyTrendChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+        <h3>Recent Transactions</h3>
+        <table>
+            <thead>
+                <tr><th>Tx</th><th>From</th><th>To</th><th>Amount</th><th>Risk</th><th>Anomaly</th><th>When</th></tr>
+            </thead>
+            <tbody>
+                {% for tx in recent_transactions %}
+                <tr>
+                    <td style="font-family:monospace;">{{ tx.tx_hash|slice:":12" }}...</td>
+                    <td style="font-family:monospace;">{{ tx.from_address|slice:":12" }}...</td>
+                    <td style="font-family:monospace;">{{ tx.to_address|slice:":12" }}...</td>
+                    <td>{{ tx.amount }}</td>
+                    <td>
+                        {% if tx.risk_label == "HIGH" %}
+                            <span class="badge badge-high">HIGH</span>
+                        {% elif tx.risk_label == "MEDIUM" %}
+                            <span class="badge badge-medium">MEDIUM</span>
+                        {% else %}
+                            <span class="badge badge-low">LOW</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ tx.is_anomaly|yesno:"Yes,No" }}</td>
+                    <td>{{ tx.timestamp|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7">No transactions yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const riskData = {{ risk_distribution|safe }};
+const dailyStats = {{ daily_stats|safe }};
+
+const pieCtx = document.getElementById('riskPieChart').getContext('2d');
+new Chart(pieCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['High','Medium','Low'],
+        datasets: [{
+            data: [riskData.HIGH, riskData.MEDIUM, riskData.LOW]
+        }]
+    }
+});
+
+const trendCtx = document.getElementById('dailyTrendChart').getContext('2d');
+const labels = dailyStats.map(d => d.date);
+const counts = dailyStats.map(d => d.count);
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{ label: 'Transactions', data: counts, fill:true }]
+    },
+    options:{ scales:{ y: { beginAtZero:true } } }
+});
+</script>
+</body>
+</html>
